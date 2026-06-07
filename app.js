@@ -64,13 +64,19 @@ function startListener() {
   const badge = document.getElementById('syncbadge');
   DOC.onSnapshot(snap => {
     if (badge) { badge.textContent = '✅ synced'; badge.style.color = 'var(--accent)'; }
-    if (!snap.exists) return;
+    if (!snap.exists) {
+      // First run — create the doc with fresh state, then render
+      DOC.set(S).catch(() => {});
+      renderAll();
+      return;
+    }
     const remote = snap.data();
     S = Object.assign(fresh(), remote);
     renderAll();
   }, err => {
     console.warn('Snapshot error', err);
     if (badge) { badge.textContent = '⚠️ offline'; badge.style.color = 'var(--warn)'; }
+    renderAll(); // still render with local state
   });
 }
 
@@ -423,7 +429,8 @@ function renderAll() {
 
 $('#logdate').value = new Date().toISOString().slice(0, 10);
 
-// Show loading state until Firestore connects
+// Render immediately with default state (Firebase will overwrite when connected)
+renderAll();
 $('#curfocus').textContent = 'Connecting to sync…';
 
 // Service worker
